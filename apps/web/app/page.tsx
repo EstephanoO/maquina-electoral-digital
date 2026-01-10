@@ -40,7 +40,12 @@ export default function Home() {
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        const response = await fetch("http://localhost:3001/health");
+        const apiUrl =
+          typeof window !== "undefined"
+            ? "https://maquina-electoral-digital-2vtlzyo80-estephanoos-projects.vercel.app/api/health"
+            : "http://localhost:3001/health";
+
+        const response = await fetch(apiUrl);
         const data = await response.json();
         setHealthData(data);
       } catch (error: any) {

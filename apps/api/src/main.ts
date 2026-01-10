@@ -7,13 +7,20 @@ async function bootstrap() {
 
   // Enable CORS for Next.js frontend
   app.enableCors({
-    origin: ['http://localhost:3000'],
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3002',
+      'https://maquina-electoral-digital.vercel.app',
+    ],
     credentials: true,
   });
 
   // Global validation pipe
   app.useGlobalPipes(new ValidationPipe());
 
-  await app.listen(process.env.PORT ?? 3001);
+  const port = process.env.PORT || 3001;
+  console.log(`Starting NestJS API on port ${port}`);
+
+  await app.listen(port);
 }
 bootstrap();
