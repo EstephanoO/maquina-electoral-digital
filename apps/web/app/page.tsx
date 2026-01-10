@@ -1,15 +1,30 @@
-import Image, { type ImageProps } from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import Image, { type ImageProps as NextImageProps } from "next/image";
 import { Button } from "@repo/ui/button";
 import styles from "./page.module.css";
 
-type Props = Omit<ImageProps, "src"> & {
+type Props = Omit<NextImageProps, "src"> & {
   srcLight: string;
   srcDark: string;
 };
 
+type HealthData = {
+  status: string;
+  database?:
+    | {
+        status: string;
+        timestamp: string;
+      }
+    | {
+        error: string;
+      };
+  timestamp: string;
+};
+
 const ThemeImage = (props: Props) => {
   const { srcLight, srcDark, ...rest } = props;
-
   return (
     <>
       <Image {...rest} src={srcLight} className="imgLight" />
@@ -19,6 +34,31 @@ const ThemeImage = (props: Props) => {
 };
 
 export default function Home() {
+  const [healthData, setHealthData] = useState<HealthData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const response = await fetch("http://localhost:3001/health");
+        const data = await response.json();
+        setHealthData(data);
+      } catch (error: any) {
+        setHealthData({
+          status: "Error connecting to API",
+          database: { error: error.message },
+          timestamp: new Date().toISOString(),
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkHealth();
+    const interval = setInterval(checkHealth, 30000); // Check every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className={styles.page}>
       <main className={styles.main}>
@@ -31,42 +71,65 @@ export default function Home() {
           height={38}
           priority
         />
-        <ol>
-          <li>
-            Get started by editing <code>apps/web/app/page.tsx</code>
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+
+        <div
+          style={{
+            padding: "20px",
+            margin: "20px 0",
+            border: "1px solid #ccc",
+            borderRadius: "8px",
+            backgroundColor: "#f9f9f9",
+          }}
+        >
+          <h2>Máquina Electoral Digital - Estado del Sistema</h2>
+
+          {loading ? (
+            <p>🔄 Verificando conexión con la base de datos...</p>
+          ) : healthData ? (
+            <div>
+              <p>
+                <strong>Estado API:</strong> {healthData.status}
+              </p>
+              {healthData.database && (
+                <div>
+                  <p>
+                    <strong>Estado Base de Datos:</strong>{" "}
+                    {"status" in healthData.database
+                      ? healthData.database.status
+                      : "Error"}
+                  </p>
+                  {"timestamp" in healthData.database && (
+                    <p>
+                      <strong>Última verificación:</strong>{" "}
+                      {new Date(healthData.database.timestamp).toLocaleString()}
+                    </p>
+                  )}
+                  {"error" in healthData.database && (
+                    <p style={{ color: "red" }}>
+                      <strong>Error:</strong> {healthData.database.error}
+                    </p>
+                  )}
+                </div>
+              )}
+              <p>
+                <strong>Timestamp:</strong>{" "}
+                {new Date(healthData.timestamp).toLocaleString()}
+              </p>
+            </div>
+          ) : (
+            <p style={{ color: "red" }}>
+              ❌ No se pudo obtener el estado del sistema
+            </p>
+          )}
+        </div>
 
         <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new/clone?demo-description=Learn+to+implement+a+monorepo+with+a+two+Next.js+sites+that+has+installed+three+local+packages.&demo-image=%2F%2Fimages.ctfassets.net%2Fe5382hct74si%2F4K8ZISWAzJ8X1504ca0zmC%2F0b21a1c6246add355e55816278ef54bc%2FBasic.png&demo-title=Monorepo+with+Turborepo&demo-url=https%3A%2F%2Fexamples-basic-web.vercel.sh%2F&from=templates&project-name=Monorepo+with+Turborepo&repository-name=monorepo-turborepo&repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fturborepo%2Ftree%2Fmain%2Fexamples%2Fbasic&root-directory=apps%2Fdocs&skippable-integrations=1&teamSlug=vercel&utm_source=create-turbo"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://turborepo.com/docs?utm_source"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+          <Button appName="web" className={styles.secondary}>
+            Verificar Conexión
+          </Button>
         </div>
-        <Button appName="web" className={styles.secondary}>
-          Open alert
-        </Button>
       </main>
+
       <footer className={styles.footer}>
         <a
           href="https://vercel.com/templates?search=turborepo&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
